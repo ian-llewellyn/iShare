@@ -1,0 +1,37 @@
+iShare for OX X
+===============
+by Ian Llewellyn
+
+What is it?
+-----------
+iShare is a small shell script that can be run to enable and start
+IP forwarding and NAT services on an OS X based Mac thus making it
+a handy little gateway for your LAN.
+
+Install
+-------
+To install, just copy the iShare script to your Mac. If the script
+is not somewhere in your $PATH environment variable, you will have
+to invoke it using a path specifier.
+
+How to run
+----------
+You You will need to make a little edit to the script to specify your
+WAN (port_inet) and LAN (port_LAN) interfaces. Then:
+$ iShare start
+is the simplest way to start the services.
+
+To stop the services, run:
+$ iShare stop
+
+To get a bit of status, run:
+$ iShare status
+
+Disclaimer
+----------
+Admitedly the script was hacked together while I was learning and I
+brought it as far as I needed it to go. There are no checks of any
+kind carried out by the script to ensure consistency of firewall
+rules, etc. Sharing has failed for me on many occasions long after
+it was started using this script (I recall natd no longer being a
+running process, but never tried to track it down).

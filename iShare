@@ -1,0 +1,73 @@
+#!/bin/sh
+## Set defaults
+ipfw_divert=1001
+ipfw_LAN=1500
+
+if [ "$1" = "" ]
+then
+  ## No arguments given!
+  echo "Usage: $0 [divert_ipfw_pos] [LAN_allow_ipfw_pos] <start | stop | status>"
+  exit
+elif [ $# = 3 ]
+then
+  ## All arguments given
+  ipfw_divert="$1"
+  ipfw_LAN="$2"
+  mode="$3"
+elif [ $# = 2 ]
+then
+  ## Only one firewall position given
+  ipfw_divert="$1"
+  ipfw_LAN="$1"+10
+  mode="$2"
+elif [ $# = 1 ]
+then
+  ## Most common usage - mode provided, defaults will be used
+  mode="$1"
+fi
+
+if [ "$mode" = "status" ]
+then
+  ps ax | grep natd | grep -v grep
+  echo
+  ipfw show
+  echo
+  sysctl net.inet.ip.forwarding
+  exit
+
+elif [ "$mode" = "stop" ]
+then
+  ## Stop ipforwarding
+  sysctl -w net.inet.ip.forwarding=0
+
+  ## Remove firewall rules
+  ipfw "$ipfw_divert" delete
+  ipfw "$ipfw_LAN" delete
+
+  ## Stop natd
+  pidfile="${PIDFILE:=/var/run/natd.pid}"
+  pid=""
+  if [ -f "${pidfile}" ]; then
+    pid=$(head -1 "${pidfile}")
+    if ! kill -3 "${pid}" 2> /dev/null; then
+      echo "Cannot quit natd using pid in file $pidfile"
+      pid=""
+#      rm -f "${pidfile}"
+    fi
+  fi
+
+  if [ -n "${pid}" ]; then
+    echo "natd stopped, pid: ${pid}"
+  else
+    echo "There was an error stopping natd"
+  fi
+  exit
+
+elif [ "$mode" = "start" ]
+then
+  natd -interface en0 -use_sockets -same_ports -unregistered_only -dynamic -clamp_mss -enable_natportmap -natportmap_interface en1
+  ipfw add "$ipfw_divert" divert natd all from any to any via en0
+  ipfw add "$ipfw_LAN" allow tcp from any to any in recv en1
+  sysctl -w net.inet.ip.forwarding=1
+  exit
+fi

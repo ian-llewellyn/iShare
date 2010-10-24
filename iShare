@@ -2,6 +2,8 @@
 ## Set defaults
 ipfw_divert=1001
 ipfw_LAN=1500
+port_inet=ppp0
+port_LAN=en1
 host_LAN=10.7.8.8
 
 if [ "$1" = "" ]
@@ -29,29 +31,29 @@ fi
 
 if [ "$mode" = "status" ]
 then
-  ps ax | grep natd | grep -v grep
+  sudo ps ax | grep natd | grep -v grep
   echo
-  ipfw show
+  sudo ipfw show
   echo
-  sysctl net.inet.ip.forwarding
+  sudo sysctl net.inet.ip.forwarding
   exit
 
 elif [ "$mode" = "stop" ]
 then
   ## Stop ipforwarding
-  sysctl -w net.inet.ip.forwarding=0
+  sudo sysctl -w net.inet.ip.forwarding=0
 
   ## Remove firewall rules
-  ipfw "$ipfw_divert" delete
-  ipfw "$ipfw_LAN" delete
-  ipfw 1750 delete
+  sudo ipfw "$ipfw_divert" delete
+  sudo ipfw "$ipfw_LAN" delete
+  sudo ipfw 1750 delete
 
   ## Stop natd
   pidfile="${PIDFILE:=/var/run/natd.pid}"
   pid=""
   if [ -f "${pidfile}" ]; then
     pid=$(head -1 "${pidfile}")
-    if ! kill -3 "${pid}" 2> /dev/null; then
+    if ! sudo kill -3 "${pid}" 2> /dev/null; then
       echo "Cannot quit natd using pid in file $pidfile"
       pid=""
 #      rm -f "${pidfile}"
@@ -67,10 +69,11 @@ then
 
 elif [ "$mode" = "start" ]
 then
-  natd -interface en0 -use_sockets -same_ports -unregistered_only -dynamic -clamp_mss -enable_natportmap -natportmap_interface en1 -redirect_port tcp $host_LAN:smtp smtp
-  ipfw add "$ipfw_divert" divert natd all from any to any via en0
-  ipfw add "$ipfw_LAN" allow tcp from any to any in recv en1
-  ipfw add 1750 allow tcp from any to indigo.webapps.ie smtp in via en0
-  sysctl -w net.inet.ip.forwarding=1
+  sudo natd -l -interface "$port_inet" -use_sockets -same_ports -unregistered_only -dynamic -clamp_mss -enable_natportmap -natportmap_interface "$port_LAN" -redirect_port tcp $host_LAN:smtp smtp -redirect_port tcp $host_LAN:http http
+  sudo ipfw add "$ipfw_divert" divert natd all from any to any via "$port_inet"
+  sudo ipfw add "$ipfw_LAN" allow tcp from any to any in recv "$port_LAN"
+  sudo ipfw add 1750 allow tcp from any to $host_LAN smtp in via "$port_inet"
+  sudo ipfw add 1750 allow tcp from any to $host_LAN http in via "$port_inet"
+  sudo sysctl -w net.inet.ip.forwarding=1
   exit
 fi

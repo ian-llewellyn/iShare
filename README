@@ -17,7 +17,9 @@ to invoke it using a path specifier.
 How to run
 ----------
 You You will need to make a little edit to the script to specify your
-WAN (port_inet) and LAN (port_LAN) interfaces. Then:
+WAN (port_inet) and LAN (port_LAN) interfaces. There are also lines in
+there that expose smtp and http services from an internal host on the
+LAN (10.7.8.8) - you might want to tweak or remove them. Then:
 $ iShare start
 is the simplest way to start the services.
 
